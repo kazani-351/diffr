@@ -1,0 +1,7 @@
+# robots.txt for Diffr
+
+User-agent: *
+Allow: /
+Disallow: /api/
+
+Sitemap: https://yourdomain.com/sitemap.xml

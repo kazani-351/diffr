@@ -5,28 +5,68 @@
   // Synchronize scrolling for split view
   let leftPane;
   let rightPane;
+  let isScrollingLeft = false;
+  let isScrollingRight = false;
 
-  function syncScroll(e) {
-    const target = e.target;
-    if (viewMode === 'split') {
-      // Basic synchronization logic can be complex, 
-      // for this MVP we let them scroll independently or link percentages
-      // Simple linking:
-      const percentage = target.scrollTop / (target.scrollHeight - target.clientHeight);
-      
-      // If user scrolled left
-      if (target === leftPane && rightPane) {
+  function syncScrollLeft(e) {
+    if (!isScrollingRight) {
+      isScrollingLeft = true;
+      const percentage = e.target.scrollTop / (e.target.scrollHeight - e.target.clientHeight);
+      if (rightPane) {
         rightPane.scrollTop = percentage * (rightPane.scrollHeight - rightPane.clientHeight);
       }
-      // If user scrolled right
-      else if (target === rightPane && leftPane) {
+      setTimeout(() => isScrollingLeft = false, 50);
+    }
+  }
+
+  function syncScrollRight(e) {
+    if (!isScrollingLeft) {
+      isScrollingRight = true;
+      const percentage = e.target.scrollTop / (e.target.scrollHeight - e.target.clientHeight);
+      if (leftPane) {
         leftPane.scrollTop = percentage * (leftPane.scrollHeight - leftPane.clientHeight);
       }
+      setTimeout(() => isScrollingRight = false, 50);
     }
+  }
+
+  // Helper to get line count from a part
+  function getLineCount(part) {
+    if (part.count) return part.count;
+    return part.value.split('\n').filter(line => line !== '').length;
   }
 </script>
 
-<div class="diff-viewer-inner" style="display: contents;">
+<style>
+  .diff-viewer-inner {
+    display: contents;
+  }
+
+  .split-pane {
+    overflow-y: auto;
+    height: 100%;
+  }
+
+  .split-pane::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .split-pane::-webkit-scrollbar-track {
+    background: var(--bg-panel);
+  }
+
+  .split-pane::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 4px;
+  }
+
+  .split-pane::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+  }
+</style>
+
+<div class="diff-viewer-inner">
   {#if viewMode === 'unified'}
     <!-- Unified View Rendering -->
     {#each diffResult as part}
@@ -42,7 +82,7 @@
   {:else}
     <!-- Split View Rendering -->
     <!-- Left Column -->
-    <div class="split-pane" bind:this={leftPane} on:scroll={syncScroll}>
+    <div class="split-pane" bind:this={leftPane} on:scroll={syncScrollLeft} role="region" aria-label="Original text">
       {#each diffResult as part}
         {#if part.removed}
           {#each part.value.split('\n') as line, idx}
@@ -54,9 +94,9 @@
           {/each}
         {:else if part.added}
           <!-- Empty placeholder on left for additions -->
-           {#each Array(part.count || part.value.split('\n').length - 1) as _}
-             <span class="diff-line empty"></span>
-           {/each}
+          {#each Array(getLineCount(part)) as _}
+            <span class="diff-line empty"></span>
+          {/each}
         {:else}
           <!-- Unchanged lines -->
           {#each part.value.split('\n') as line, idx}
@@ -71,7 +111,7 @@
     </div>
 
     <!-- Right Column -->
-    <div class="split-pane" bind:this={rightPane} on:scroll={syncScroll}>
+    <div class="split-pane" bind:this={rightPane} on:scroll={syncScrollRight} role="region" aria-label="Modified text">
       {#each diffResult as part}
         {#if part.added}
           {#each part.value.split('\n') as line, idx}
@@ -82,10 +122,10 @@
             {/if}
           {/each}
         {:else if part.removed}
-           <!-- Empty placeholder on right for deletions -->
-           {#each Array(part.count || part.value.split('\n').length - 1) as _}
-             <span class="diff-line empty"></span>
-           {/each}
+          <!-- Empty placeholder on right for deletions -->
+          {#each Array(getLineCount(part)) as _}
+            <span class="diff-line empty"></span>
+          {/each}
         {:else}
           <!-- Unchanged lines -->
           {#each part.value.split('\n') as line, idx}

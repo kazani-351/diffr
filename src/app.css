@@ -6,6 +6,7 @@
   --text-muted: #666666;
   --border-color: #e0e0e0;
   --primary-color: #3b82f6;
+  --primary-hover: #2563eb;
   
   /* Diff Colors - Light */
   --diff-del-bg: #ffeef0;
@@ -22,6 +23,7 @@
   --text-muted: #a0a0a0;
   --border-color: #333333;
   --primary-color: #60a5fa;
+  --primary-hover: #3b82f6;
   
   /* Diff Colors - Dark */
   --diff-del-bg: #3e2022;
@@ -36,6 +38,10 @@
   padding: 0;
 }
 
+html {
+  font-size: 16px;
+}
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   background-color: var(--bg-body);
@@ -46,6 +52,28 @@ body {
   flex-direction: column;
 }
 
+/* Focus styles for accessibility */
+:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+/* Skip link for keyboard navigation */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: var(--primary-color);
+  color: white;
+  padding: 8px;
+  text-decoration: none;
+  z-index: 100;
+}
+
+.skip-link:focus {
+  top: 0;
+}
+
 /* Header & Controls */
 header {
   padding: 1rem 2rem;
@@ -54,6 +82,7 @@ header {
   justify-content: space-between;
   align-items: center;
   background-color: var(--bg-body);
+  gap: 1rem;
 }
 
 .logo {
@@ -71,7 +100,9 @@ header {
 
 .controls {
   display: flex;
-  gap: 1rem;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 button {
@@ -82,18 +113,31 @@ button {
   border-radius: 6px;
   cursor: pointer;
   font-size: 0.9rem;
-  transition: all 0.2s;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  white-space: nowrap;
 }
 
 button:hover {
   border-color: var(--primary-color);
   color: var(--primary-color);
+  background-color: var(--bg-body);
 }
 
-button.active {
+button:active {
+  transform: translateY(1px);
+}
+
+button.active,
+button[aria-pressed="true"] {
   background-color: var(--primary-color);
   color: white;
   border-color: var(--primary-color);
+}
+
+button.active:hover,
+button[aria-pressed="true"]:hover {
+  background-color: var(--primary-hover);
 }
 
 /* Main Workspace */
@@ -104,11 +148,16 @@ main {
   padding: 1rem;
   gap: 1rem;
   overflow: hidden;
+  min-height: 0;
 }
 
 @media (min-width: 768px) {
   main {
     flex-direction: row;
+  }
+
+  header {
+    padding: 1rem 2rem;
   }
 }
 
@@ -117,6 +166,7 @@ main {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  min-height: 0;
 }
 
 label {
@@ -136,33 +186,61 @@ textarea {
   color: var(--text-main);
   font-family: 'SF Mono', 'Menlo', 'Monaco', 'Courier New', monospace;
   font-size: 14px;
-  line-height: 1.5;
+  line-height: 1.6;
   resize: none;
   outline: none;
+  min-height: 200px;
 }
 
 textarea:focus {
   border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+textarea::placeholder {
+  color: var(--text-muted);
+  opacity: 0.6;
 }
 
 /* Diff Output */
 .diff-container {
-  flex: 1;
+  flex: 2;
   border: 1px solid var(--border-color);
   border-radius: 8px;
   background-color: var(--bg-panel);
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  min-height: 200px;
 }
 
 .diff-viewer {
   flex: 1;
   overflow-y: auto;
+  overflow-x: auto;
   font-family: 'SF Mono', 'Menlo', 'Monaco', 'Courier New', monospace;
   font-size: 14px;
-  line-height: 1.5;
+  line-height: 1.6;
   display: grid;
+  min-height: 0;
+}
+
+.diff-viewer::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.diff-viewer::-webkit-scrollbar-track {
+  background: var(--bg-panel);
+}
+
+.diff-viewer::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 5px;
+}
+
+.diff-viewer::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
 }
 
 /* Unified View */
@@ -173,7 +251,14 @@ textarea:focus {
 /* Split View */
 .split-view {
   grid-template-columns: 1fr 1fr;
-  border-left: 1px solid var(--border-color);
+}
+
+.split-view .diff-line {
+  border-right: 1px solid var(--border-color);
+}
+
+.split-view .diff-pane:last-child .diff-line {
+  border-right: none;
 }
 
 .diff-line {
@@ -181,6 +266,8 @@ textarea:focus {
   padding: 0 1rem;
   white-space: pre-wrap;
   word-break: break-all;
+  min-height: 1.6em;
+  line-height: 1.6;
 }
 
 .diff-line.added {
@@ -198,16 +285,121 @@ textarea:focus {
   user-select: none;
 }
 
+.diff-pane {
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
 /* Stats Bar */
 .stats {
-  padding: 0.5rem 1rem;
+  padding: 0.75rem 1rem;
   border-top: 1px solid var(--border-color);
   font-size: 0.85rem;
   color: var(--text-muted);
   display: flex;
   gap: 1.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+  background-color: var(--bg-panel);
 }
 
 .stat-item strong {
   color: var(--text-main);
+  font-weight: 600;
+}
+
+/* Loading and Empty States */
+.loading,
+.empty-state {
+  padding: 3rem 2rem;
+  text-align: center;
+  color: var(--text-muted);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  height: 100%;
+}
+
+.loading::before {
+  content: "";
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--border-color);
+  border-top-color: var(--primary-color);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Responsive Improvements */
+@media (max-width: 640px) {
+  header {
+    padding: 1rem;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .controls {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .logo {
+    font-size: 1.25rem;
+  }
+
+  main {
+    padding: 0.5rem;
+    gap: 0.5rem;
+  }
+
+  button {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.85rem;
+  }
+
+  .diff-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .view-controls {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .stats {
+    font-size: 0.75rem;
+    gap: 1rem;
+  }
+}
+
+/* Print Styles */
+@media print {
+  header,
+  .controls,
+  .input-pane {
+    display: none;
+  }
+
+  main {
+    display: block;
+  }
+
+  .diff-container {
+    border: none;
+    box-shadow: none;
+  }
+
+  .diff-line {
+    page-break-inside: avoid;
+  }
 }
